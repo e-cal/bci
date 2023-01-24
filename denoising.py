@@ -3,12 +3,8 @@ from pykalman import KalmanFilter
 import matplotlib.pyplot as plt
 from scipy.signal import cwt
 
-
 eeg_data = np.genfromtxt("test.csv")
-
-print(np.shape(eeg_data))
-plt.plot(eeg_data[:,1])
-
+eeg_data = eeg_data[:200,:]
 
 # Simple moving average filter. The honda civic of all denoising techniques.
 def sma(data, window_size):
@@ -21,25 +17,35 @@ def sma(data, window_size):
     # Return filtered data
     return filtered_data
 
-filtered = sma(eeg_data[:,1],3)
-plt.plot(filtered)
+# Kalman filtering, uses probability based state estimate techniques to disregard noise
+def kalman(data):        
+    # Read in the EEG data
+    eeg_data = data
+
+    # Initialize the Kalman filter
+    kf = KalmanFilter(transition_matrices=np.array([[1, 1], [0, 1]]),
+                    observation_matrices=np.array([[1, 0]]),
+                    initial_state_mean=np.array([0, 0]),
+                    initial_state_covariance=np.eye(2),
+                    transition_covariance=np.array([[0.0001, 0], [0, 0.0001]]),
+                    observation_covariance=np.array([[0.1]]))
+
+    # Perform the Kalman filter on the EEG data
+    eeg_estimate, _ = kf.filter(eeg_data)
+    return eeg_estimate
+
+
+sma_filt = sma(eeg_data[:,1],3)
+k_filt = kalman(eeg_data[:,1])[:,0]
+print(np.shape(k_filt))
+plt.plot(eeg_data[:,1], label = 'data')
+plt.plot(sma_filt, label = 'sma')
+plt.plot(k_filt, label = 'kalman')
+plt.legend()
 plt.show()
+
 '''
-
 # Not working correctly yet
-def kalman(data, transition_matrices, observation_matrices, initial_state_mean,initial_state_covariance,observation_covariance,transition_covariance):
-    # Define the Kalman filter
-    kf = KalmanFilter(transition_matrices,
-                    observation_matrices,
-                    initial_state_mean,
-                    initial_state_covariance,
-                    observation_covariance,
-                    transition_covariance)
-
-    # Apply the Kalman filter to the EEG data
-    eeg_filtered, _ = kf.filter(data)
-    return eeg_filtered
-
 def cwt(data):
 
     # Load the noisy signal
