@@ -2,10 +2,11 @@ import numpy as np
 from pykalman import KalmanFilter
 import matplotlib.pyplot as plt
 from scipy.signal import cwt
+from scipy.signal import spectrogram
 
 eeg_data = np.genfromtxt("test.csv")
-eeg_data = eeg_data[:200,:]
 
+eeg_data = eeg_data[:200,:]
 # Simple moving average filter. The honda civic of all denoising techniques.
 def sma(data, window_size):
     # Load EEG data into a numpy array
@@ -34,6 +35,53 @@ def kalman(data):
     eeg_estimate, _ = kf.filter(eeg_data)
     return eeg_estimate
 
+'''
+sma_filt = sma(eeg_data[:,1],3)
+k_filt = kalman(eeg_data[:,1])[:,0]
+print(np.shape(k_filt))
+plt.plot(eeg_data[:,1], label = 'data')
+plt.plot(sma_filt, label = 'sma')
+plt.plot(k_filt, label = 'kalman')
+plt.legend()
+plt.show()
+'''
+
+def spec(data):
+    ''''
+    # Define the sampling rate (in Hz) and window size (in seconds) for the spectrogram
+    fs = 250
+
+    # Calculate the spectrogram
+    f, t, Sxx = spectrogram(data, fs)
+
+    # Plot the spectrogram
+    plt.pcolormesh(t, f, Sxx)
+    plt.pcolormesh(t, f, Sxx, shading='gouraud')
+    plt.ylabel('Frequency [Hz]')
+    plt.xlabel('Time [sec]')
+    plt.show()
+
+    import numpy as np
+    from scipy import signal
+    from scipy.fft import fftshift
+    import matplotlib.pyplot as plt
+    rng = np.random.default_rng()
+    fs = 10
+    N = 1e5
+    amp = 2 * np.sqrt(2)
+    noise_power = 0.01 * fs / 2
+    time = np.arange(N) / float(fs)
+    mod = 500*np.cos(2*np.pi*0.25*time)
+    carrier = amp * np.sin(2*np.pi*3e3*time + mod)
+    noise = rng.normal(scale=np.sqrt(noise_power), size=time.shape)
+    noise *= np.exp(-time/5)
+    x = carrier + noise
+    f, t, Sxx = signal.spectrogram(data, fs)
+    plt.pcolormesh(t, f, Sxx, shading='gouraud')
+    plt.ylabel('Frequency [Hz]')
+    plt.xlabel('Time [sec]')
+    plt.show()
+    '''
 
 sma_filt = sma(eeg_data[:,1],3)
 k_filt = kalman(eeg_data[:,1])[:,0]
