@@ -9,7 +9,7 @@ clock = pygame.time.Clock()
 
 screen = pygame.display.set_mode((650, 1000))
 
-background = pygame.image.load('background.png')
+background = pygame.image.load('Flappy Bird Pygame/background.png')
 background = pygame.transform.scale_by(background, 1.3)
 
 screen.fill((255,255,255))
@@ -18,7 +18,7 @@ screen.blit(background, (0,0))
 
 pygame.display.flip()
 
-pygame.display.set_caption('Flappy Bird')
+pygame.display.set_caption('Flappy Bird Pygame/Flappy Bird')
 
 font = pygame.font.Font('freesansbold.ttf', 32)
 startLine1 = font.render('Press Any Key To Start', True, (0,0,0), (114,200,207))
@@ -44,14 +44,14 @@ def start_menu(start):
 
 
 def running():
-    bird = pygame.image.load('bird1.png')
+    bird = pygame.image.load('Flappy Bird Pygame/bird1.png')
     pos_x = 100
     pos_y = 350
     gravity = 3
     jump = -120
     bird_rect = bird.get_rect(center=(pos_x, pos_y))
 
-    pipe_surface = pygame.image.load('pipe.png')
+    pipe_surface = pygame.image.load('Flappy Bird Pygame/pipe.png')
     pipe_list = []
     SPAWNPIPE = pygame.USEREVENT
     pygame.time.set_timer(SPAWNPIPE, 1200)
