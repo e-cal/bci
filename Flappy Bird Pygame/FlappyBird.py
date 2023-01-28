@@ -28,6 +28,7 @@ endLine = font.render('Press Any Key To Play Again', True, (0,0,0), (114,200,207
 
 start = False
 
+# Starting the game
 def start_menu(start):
     while not start:
         for event in pygame.event.get():
