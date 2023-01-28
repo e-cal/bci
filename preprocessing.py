@@ -137,4 +137,16 @@ def cwt(data):
     plt.legend()
     plt.show()
 
-"""
+'''
+
+#Simple bandpass filter
+
+def bpFilter (data):
+    low = 12
+    high = 100
+    
+    data[data['']]
+   # tests_df[(tests_df['grade'] > 10)]
+   
+
+    
