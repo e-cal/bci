@@ -58,18 +58,46 @@ def main():
     board = BoardShim(board_id, params)
     board.prepare_session()
     board.start_stream()
-    time.sleep(10)
+    time.sleep(args.time)
     data = board.get_board_data()  # get all data and remove it from internal buffer
     board.stop_stream()
     board.release_session()
 
     eeg_channels = BoardShim.get_eeg_channels(board_id.value)
     df = pd.DataFrame(np.transpose(data))
+    df.columns = [
+        "packet",
+        "eeg1",
+        "eeg2",
+        "eeg3",
+        "eeg4",
+        "eeg5",
+        "eeg6",
+        "eeg7",
+        "eeg8",
+        "accel1",
+        "accel2",
+        "accel3",
+        "other1",
+        "other2",
+        "other3",
+        "other4",
+        "other5",
+        "other6",
+        "other7",
+        "analog1",
+        "analog2",
+        "analog3",
+        "timestamp",
+        "marker",
+    ]
+
     print("Data From the Board")
     print(df.head(10))
 
-    DataFilter.write_file(data, args.file, "w")
-    print(f"Data saved to {args.file}")
+    df.to_csv(args.file, index=False)
+    # DataFilter.write_file(data, args.file, "w")
+    # print(f"Data saved to {args.file}")
 
     """
     restored_data = DataFilter.read_file(args.file)
