@@ -6,7 +6,7 @@ from scipy.signal import spectrogram
 
 eeg_data = np.genfromtxt("test.csv")
 
-eeg_data = eeg_data[:200,:]
+#eeg_data = eeg_data[:200,:]
 # Simple moving average filter. The honda civic of all denoising techniques.
 def sma(data, window_size):
     # Load EEG data into a numpy array
@@ -125,3 +125,15 @@ def cwt(data):
     plt.show()
 
 '''
+
+#Simple bandpass filter
+
+def bpFilter (data):
+    low = 12
+    high = 100
+    
+    data[data['']]
+   # tests_df[(tests_df['grade'] > 10)]
+   
+
+    
