@@ -20,22 +20,6 @@ pygame.display.flip()
 
 pygame.display.set_caption('Flappy Bird')
 
-
-bird = pygame.image.load('bird1.png')
-pos_x = 100
-pos_y = 350
-gravity = 3
-jump = -120
-start = False
-bird_rect = bird.get_rect(center=(pos_x, pos_y))
-
-pipe_surface = pygame.image.load('pipe.png')
-pipe_list = []
-
-SPAWNPIPE = pygame.USEREVENT
-pygame.time.set_timer(SPAWNPIPE, 1200)
-
-
 font = pygame.font.Font('freesansbold.ttf', 32)
 startLine1 = font.render('Press Any Key To Start', True, (0,0,0), (114,200,207))
 startLine2 = font.render('Jump (Space)', True, (0,0,0), (114,200,207))
@@ -43,7 +27,6 @@ startLine2 = font.render('Jump (Space)', True, (0,0,0), (114,200,207))
 endLine = font.render('Press Any Key To Play Again', True, (0,0,0), (114,200,207))
 
 start = False
-
 
 def start_menu(start):
     while not start:
@@ -61,13 +44,25 @@ def start_menu(start):
 
 
 def running():
+    bird = pygame.image.load('bird1.png')
+    pos_x = 100
     pos_y = 350
+    gravity = 3
+    jump = -120
+    bird_rect = bird.get_rect(center=(pos_x, pos_y))
+
+    pipe_surface = pygame.image.load('pipe.png')
+    pipe_list = []
+    SPAWNPIPE = pygame.USEREVENT
+    pygame.time.set_timer(SPAWNPIPE, 1200)
     pipe_x = 950
-    background_pos_x = 0
     pipe_height = [400, 600, 800]
 
+    background_pos_x = 0
 
-    while True:
+    end = False
+
+    while not end:
         for event in pygame.event.get():
             
             if event.type == QUIT:
@@ -94,7 +89,7 @@ def running():
 
         # Checking Boundaries
         if pos_y >= 885:
-            end_screen()
+            end = True
 
         else:
             pos_y += gravity
@@ -122,13 +117,15 @@ def running():
 
         for pipe in pipe_list:
             if bird_rect.colliderect(pipe):
-                end_screen()
+                end = True
 
         screen.blit(bird, (pos_x, pos_y))
 
         pygame.display.update()
 
         clock.tick(150)
+
+    end_screen()
 
 
 def end_screen():
