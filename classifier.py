@@ -112,9 +112,9 @@ for i in range(num_partitions):
             idx_band = np.logical_and(f >= bands[band][0], f < bands[band][1])
             # Calculate the power in the frequency band
             power = np.trapz(psd[idx_band], f[idx_band])
-            # Append the power to the appropriate band in the dictionary
-
+            # Append the power to list
             powers.append(power)
+
     band_data = band_data.append(pd.Series(powers, index=range(16)), ignore_index=True)
 
 print(band_data)
@@ -134,7 +134,6 @@ X_pca = pca.fit_transform(X)
 # Update the DataFrame with the transformed data
 df_pca = pd.DataFrame(X_pca, columns=['PC1', 'PC2'])
 
-
 # Initialize KMeans model with 2 clusters
 kmeans = KMeans(n_clusters=2)
 
@@ -146,14 +145,15 @@ labels = kmeans.predict(df_pca)
 
 # Add the cluster labels as a new column to the DataFrame
 df_pca["cluster"] = labels
+print(df_pca)
 
 # View the updated DataFrame
 # Create a scatter plot with different colors for each cluster
-sns.scatterplot(x='PC1', y='PC2', hue=labels, data=df_pca)
-
+#sns.scatterplot(x='PC1', y='PC2', hue=labels, data=df_pca)
+plt.plot(df_pca["cluster"])
 # Add labels to the plot
-plt.xlabel('PC1')
-plt.ylabel('PC2')
+#plt.xlabel('PC1')
+#plt.ylabel('PC2')
 
 # Show the plot
 plt.show()
