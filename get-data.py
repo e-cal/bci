@@ -93,7 +93,7 @@ def main():
     ]
 
     print("Data From the Board")
-    print(df.head(10))
+    print(df.head())
 
     df.to_csv(args.file, index=False)
     # DataFilter.write_file(data, args.file, "w")
