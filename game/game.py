@@ -1,7 +1,9 @@
+import os
+
+os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
 import pygame
-from pygame.locals import *
 import random
-import time
+
 
 JUMP = 20
 GRAVITY = 0.1
@@ -15,7 +17,10 @@ screen = pygame.display.set_mode((650, 1000))
 font = pygame.font.Font("freesansbold.ttf", 32)
 background = pygame.image.load("game/background.png")
 background = pygame.transform.scale(
-    background, [background.get_width() * 1.3, background.get_height() * 1.3]
+    background,
+    [background.get_width() * 1.31, background.get_height() * 1.31]
+    # background,
+    # (screen.get_width(), screen.get_height()),
 )
 SPAWNPIPE = pygame.USEREVENT
 pygame.time.set_timer(SPAWNPIPE, 1200)
@@ -26,7 +31,7 @@ class Bird:
         self,
         x=100,
         y=screen.get_height() // 2,
-        size=[80, 80],
+        size=[90, 90],
         vel=0,
         img="game/brain.png",
     ) -> None:
@@ -60,11 +65,14 @@ class Bird:
 class Pipe:
     def __init__(self) -> None:
         self.img = pygame.image.load("game/pipe.png")
+        self.img = pygame.transform.scale(
+            self.img, [self.img.get_width() * 1.05, self.img.get_height() * 1.1]
+        )
         self.imginv = pygame.transform.flip(self.img, False, True)
 
         self.x = screen.get_width() + 50
-
-        self.mid = random.randint(400, 800)
+        self.mid = random.randint(300, 700)
+        # self.mid = random.choice([300, 800])
         self.gap = random.randint(250, 300)
         self.update()
 
@@ -73,12 +81,8 @@ class Pipe:
 
     def update(self):
         self.x -= 2
-        self.top = self.img.get_rect(
-            midbottom=(self.x, self.mid - (self.gap // 2) - 120)
-        )
-        self.bottom = self.img.get_rect(
-            midtop=(self.x, self.mid + (self.gap // 2) - 120)
-        )
+        self.top = self.img.get_rect(midbottom=(self.x, self.mid - (self.gap // 2)))
+        self.bottom = self.img.get_rect(midtop=(self.x, self.mid + (self.gap // 2)))
 
     def draw(self):
         screen.blit(self.img, self.bottom)
@@ -94,12 +98,17 @@ def menu():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_q:
                     pygame.quit()
+                    break
                 else:
                     run()
 
-        screen.blit(background, (0, 0))
-        screen.blit(text, (105, 450))
-        pygame.display.update()
+        try:
+            screen.blit(background, (0, 0))
+            screen.blit(text, (105, 450))
+            pygame.display.update()
+
+        except pygame.error:
+            exit()
 
 
 def update_background(bg_x):
@@ -133,9 +142,6 @@ def run():
 
                 if event.key == pygame.K_SPACE:
                     bird.jump()
-
-                if event.key == pygame.K_q:
-                    pygame.quit()
 
             if event.type == SPAWNPIPE:
                 pipes.append(Pipe())
