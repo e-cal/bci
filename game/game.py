@@ -128,10 +128,11 @@ def menu():
         eeg = False
         board = BoardShim(BoardIds.SYNTHETIC_BOARD, BrainFlowInputParams())
 
+    needs_update = True
     while True:
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
-
+                needs_update = True
                 if event.key == pygame.K_q:
                     if eeg:
                         end_session(board, args.file)
@@ -141,20 +142,22 @@ def menu():
                 elif event.key == pygame.K_SPACE:
                     run(args.record, board)
 
-        try:
-            screen.blit(background, (0, 0))
-            for i, t in enumerate(menu_text):
-                text = font.render(t, True, (0, 0, 0), None)
-                text_rect = text.get_rect()
-                text_rect.center = (
-                    screen.get_width() // 2,
-                    (screen.get_height() // 2) - (len(menu_text) * 20) + (i * 40),
-                )
-                screen.blit(text, text_rect)
-            pygame.display.update()
+        if needs_update:
+            needs_update = False
+            try:
+                screen.blit(background, (0, 0))
+                for i, t in enumerate(menu_text):
+                    text = font.render(t, True, (0, 0, 0), None)
+                    text_rect = text.get_rect()
+                    text_rect.center = (
+                        screen.get_width() // 2,
+                        (screen.get_height() // 2) - (len(menu_text) * 20) + (i * 40),
+                    )
+                    screen.blit(text, text_rect)
+                pygame.display.update()
 
-        except pygame.error:
-            exit()
+            except pygame.error:
+                exit()
 
 
 class Bird:
