@@ -1,10 +1,9 @@
 import time
-import argparse
 import pandas as pd
 import numpy as np
+import argparse
 
 from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds
-from brainflow.data_filter import DataFilter
 
 
 def parseargs():
@@ -57,10 +56,13 @@ def main():
 
     board = BoardShim(board_id, params)
     board.prepare_session()
+
     board.start_stream()
     time.sleep(args.time)
+
     data = board.get_board_data()  # get all data and remove it from internal buffer
     board.stop_stream()
+
     board.release_session()
 
     eeg_channels = BoardShim.get_eeg_channels(board_id.value)

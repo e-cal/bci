@@ -1,14 +1,21 @@
 import os
 
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
-import pygame
+import argparse
 import random
 
+import numpy as np
+import pandas as pd
+import pygame
+from brainflow.board_shim import BoardIds, BoardShim, BrainFlowInputParams
 
 JUMP = 20
 GRAVITY = 0.1
 
 MAX_VEL = 5
+
+SERIAL_PORT = "/dev/ttyUSB0"
+
 
 # Init game
 pygame.init()
@@ -17,13 +24,137 @@ screen = pygame.display.set_mode((650, 1000))
 font = pygame.font.Font("freesansbold.ttf", 32)
 background = pygame.image.load("game/background.png")
 background = pygame.transform.scale(
-    background,
-    [background.get_width() * 1.31, background.get_height() * 1.31]
-    # background,
-    # (screen.get_width(), screen.get_height()),
+    background, [background.get_width() * 1.31, background.get_height() * 1.31]
 )
 SPAWNPIPE = pygame.USEREVENT
 pygame.time.set_timer(SPAWNPIPE, 1200)
+
+
+def parseargs():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        "-r",
+        "--record",
+        help="record EEG data",
+        required=False,
+        action="store_true",
+    )
+    parser.add_argument(
+        "-b",
+        "--bci",
+        help="control using BCI",
+        required=False,
+        action="store_true",
+    )
+    parser.add_argument(
+        "-f",
+        "--file",
+        type=str,
+        help="file path to save data to (default: data.csv)",
+        required=False,
+        default="data.csv",
+    )
+    return parser.parse_args()
+
+
+def init_board() -> BoardShim:
+    BoardShim.enable_dev_board_logger()
+    params = BrainFlowInputParams()
+    params.serial_port = SERIAL_PORT
+    board_id = BoardIds.CYTON_BOARD
+    board = BoardShim(board_id, params)
+    board.prepare_session()
+    board.start_stream()
+    return board
+
+
+def end_session(board: BoardShim, fp: str):
+    data = board.get_board_data()
+
+    board.stop_stream()
+    board.release_session()
+
+    df = pd.DataFrame(np.transpose(data))
+    df.columns = [
+        "packet",
+        "eeg1",
+        "eeg2",
+        "eeg3",
+        "eeg4",
+        "eeg5",
+        "eeg6",
+        "eeg7",
+        "eeg8",
+        "accel1",
+        "accel2",
+        "accel3",
+        "other1",
+        "other2",
+        "other3",
+        "other4",
+        "other5",
+        "other6",
+        "other7",
+        "analog1",
+        "analog2",
+        "analog3",
+        "timestamp",
+        "marker",
+    ]
+
+    # preprocess here maybe?
+
+    df.to_csv(fp, index=True)
+
+
+def menu():
+    menu_text = [
+        "Press space to play",
+        "Press q to quit",
+    ]
+
+    args = parseargs()
+
+    if args.record or args.bci:
+        if args.record and args.bci:
+            print("Cannot record and control with BCI at the same time.")
+            exit()
+
+        eeg = True
+        board = init_board()
+
+    else:  # not using eeg. fake a board for type checking
+        eeg = False
+        board = BoardShim(BoardIds.SYNTHETIC_BOARD, BrainFlowInputParams())
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+
+                if event.key == pygame.K_q:
+                    if eeg:
+                        end_session(board, args.file)
+                    pygame.quit()
+                    break
+
+                elif event.key == pygame.K_SPACE:
+                    run(args.record, board)
+
+        try:
+            screen.blit(background, (0, 0))
+            for i, t in enumerate(menu_text):
+                text = font.render(t, True, (0, 0, 0), None)
+                text_rect = text.get_rect()
+                text_rect.center = (
+                    screen.get_width() // 2,
+                    (screen.get_height() // 2) - (len(menu_text) * 20) + (i * 40),
+                )
+                screen.blit(text, text_rect)
+            pygame.display.update()
+
+        except pygame.error:
+            exit()
 
 
 class Bird:
@@ -89,49 +220,23 @@ class Pipe:
         screen.blit(self.imginv, self.top)
 
 
-def menu():
-    text = font.render("Press Any Key To Start", True, (0, 0, 0), (114, 200, 207))
+def update_background(pos):
+    pos -= 1
+    screen.blit(background, (pos, 0))
+    screen.blit(background, (pos + 650, 0))
 
-    start = False
-    while not start:
-        for event in pygame.event.get():
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_q:
-                    pygame.quit()
-                    break
-                else:
-                    run()
+    if pos < -650:
+        pos = 0
 
-        try:
-            screen.blit(background, (0, 0))
-            screen.blit(text, (105, 450))
-            pygame.display.update()
-
-        except pygame.error:
-            exit()
+    return pos
 
 
-def update_background(bg_x):
-    bg_x -= 1
-    screen.blit(background, (bg_x, 0))
-    screen.blit(background, (bg_x + 650, 0))
-
-    if bg_x < -650:
-        bg_x = 0
-
-    return bg_x
-
-
-def run():
+def run(record: bool, board: BoardShim):
     bird = Bird()
     pipes = []
-
-    # pipe_height = [400, 600, 800]
-
-    bg_x = 0
+    bg_pos = 0
 
     end = False
-
     while not end:
         screen.fill((255, 255, 255))
 
@@ -141,6 +246,9 @@ def run():
             if event.type == pygame.KEYDOWN:
 
                 if event.key == pygame.K_SPACE:
+                    if record:
+                        print("jump")
+                        board.insert_marker(1)
                     bird.jump()
 
             if event.type == SPAWNPIPE:
@@ -150,7 +258,7 @@ def run():
         if bird.y >= screen.get_height() or bird.y <= -40:
             end = True
 
-        bg_x = update_background(bg_x)
+        bg_pos = update_background(bg_pos)
 
         for pipe in pipes:
             if pipe.x <= 0:
