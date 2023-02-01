@@ -16,6 +16,13 @@ MAX_VEL = 5
 
 SERIAL_PORT = "/dev/ttyUSB0"
 
+# Number of data points to mark as "jump" before and after key press
+# sample rate: 250hz (250 / second)
+# how long before/after the action are the relevant neural signals present?
+# travel time: 20-30ms
+LABEL_WINDOW_BACKWARD = 5
+LABEL_WINDOW_FORWARD = 5
+
 
 # Init game
 pygame.init()
@@ -111,6 +118,8 @@ def end_session(board: BoardShim, fp: str):
 def menu():
     menu_text = [
         "Press space to play",
+        "Press r to record",
+        "Press b to play with bci",
         "Press q to quit",
     ]
 
