@@ -37,32 +37,32 @@ SPAWNPIPE = pygame.USEREVENT
 pygame.time.set_timer(SPAWNPIPE, 1200)
 
 
-def parseargs():
-    parser = argparse.ArgumentParser()
+# def parseargs():
+#     parser = argparse.ArgumentParser()
 
-    parser.add_argument(
-        "-r",
-        "--record",
-        help="record EEG data",
-        required=False,
-        action="store_true",
-    )
-    parser.add_argument(
-        "-b",
-        "--bci",
-        help="control using BCI",
-        required=False,
-        action="store_true",
-    )
-    parser.add_argument(
-        "-f",
-        "--file",
-        type=str,
-        help="file path to save data to (default: data.csv)",
-        required=False,
-        default="data.csv",
-    )
-    return parser.parse_args()
+#     parser.add_argument(
+#         "-r",
+#         "--record",
+#         help="record EEG data",
+#         required=False,
+#         action="store_true",
+#     )
+#     parser.add_argument(
+#         "-b",
+#         "--bci",
+#         help="control using BCI",
+#         required=False,
+#         action="store_true",
+#     )
+#     parser.add_argument(
+#         "-f",
+#         "--file",
+#         type=str,
+#         help="file path to save data to (default: data.csv)",
+#         required=False,
+#         default="data.csv",
+#     )
+#     return parser.parse_args()
 
 
 def init_board() -> BoardShim:
@@ -123,51 +123,100 @@ def menu():
         "Press q to quit",
     ]
 
-    args = parseargs()
+    record = False
+    bci = False
+    normal = False
+    selected_mode = False
 
-    if args.record or args.bci:
-        if args.record and args.bci:
-            print("Cannot record and control with BCI at the same time.")
-            exit()
+    eeg = True
+    board_Synthetic = BoardShim(BoardIds.SYNTHETIC_BOARD, BrainFlowInputParams())
+    # board = init_board()
 
-        eeg = True
-        board = init_board()
-
-    else:  # not using eeg. fake a board for type checking
-        eeg = False
-        board = BoardShim(BoardIds.SYNTHETIC_BOARD, BrainFlowInputParams())
-
-    needs_update = True
-    while True:
+    while not selected_mode:
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
-                needs_update = True
                 if event.key == pygame.K_q:
-                    if eeg:
-                        end_session(board, args.file)
+                    end_session(board, "file")
+                    pygame.quit()
+                    break
+                    
+                if event.key == pygame.K_SPACE:
+                    run("normal", board_Synthetic)
+                    normal, selected_mode = True, True
+                    
+
+                elif event.key == pygame.K_r:
+                    run("record", board_Synthetic)
+                    record, selected_mode = True, True
+
+                elif event.key == pygame.K_b:
+                    run("bci", board_Synthetic)
+                    bci, selected_mode = True, True
+
+        update_screen(menu_text)
+
+
+    mode_text = font.render("Normal", True, (255,255,255))
+
+    while normal:
+        menu_text = ["Press space to continue playing"]
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_q:
+                    end_session(board_Synthetic, "file")
+                    pygame.quit()
+                    break
+                
+                if event.key == pygame.K_SPACE:
+                    run("normal", board_Synthetic)
+
+        update_screen(menu_text)
+
+    while record:
+        menu_text = ["Press space to continue recording"]
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_q:
+                    end_session(board_Synthetic, "file")
+                    pygame.quit()
+                    break
+                
+                if event.key == pygame.K_SPACE:
+                    run("record", board_Synthetic)
+
+        update_screen(menu_text)
+
+    while bci:
+        menu_text = ["Press space to continue using bci"]
+        for event in pygame.event.get():
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_q:
+                    end_session(board, "file")
                     pygame.quit()
                     break
 
-                elif event.key == pygame.K_SPACE:
-                    run(args.record, board)
+                if event.key == pygame.K_SPACE:
+                    run("bci", board_Synthetic)
 
-        if needs_update:
-            needs_update = False
-            try:
-                screen.blit(background, (0, 0))
-                for i, t in enumerate(menu_text):
-                    text = font.render(t, True, (0, 0, 0), None)
-                    text_rect = text.get_rect()
-                    text_rect.center = (
-                        screen.get_width() // 2,
-                        (screen.get_height() // 2) - (len(menu_text) * 20) + (i * 40),
-                    )
-                    screen.blit(text, text_rect)
-                pygame.display.update()
+        update_screen(menu_text)
+            
 
-            except pygame.error:
-                exit()
+def update_screen(menu_text):
+    try:
+        screen.blit(background, (0, 0))
+        for i, t in enumerate(menu_text):
+            text = font.render(t, True, (0, 0, 0), None)
+            text_rect = text.get_rect()
+            text_rect.center = (
+                screen.get_width() // 2,
+                (screen.get_height() // 2) - (len(menu_text) * 20) + (i * 40),
+            )
+            screen.blit(text, text_rect)
+        pygame.display.update()
 
+    except pygame.error:
+        exit()
+    
 
 class Bird:
     def __init__(
@@ -243,7 +292,7 @@ def update_background(pos):
     return pos
 
 
-def run(record: bool, board: BoardShim):
+def run(mode: str, board: BoardShim):
     bird = Bird()
     pipes = []
     bg_pos = 0
@@ -258,7 +307,7 @@ def run(record: bool, board: BoardShim):
             if event.type == pygame.KEYDOWN:
 
                 if event.key == pygame.K_SPACE:
-                    if record:
+                    if mode == "record":
                         print("jump")
                         board.insert_marker(1)
                     bird.jump()
@@ -267,7 +316,7 @@ def run(record: bool, board: BoardShim):
                 pipes.append(Pipe())
 
         # Checking Boundaries
-        if bird.y >= screen.get_height() or bird.y <= -40:
+        if bird.y <= -15 or bird.y >= 870:
             end = True
 
         bg_pos = update_background(bg_pos)
