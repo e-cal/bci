@@ -130,7 +130,7 @@ def menu():
 
     eeg = True
     board_Synthetic = BoardShim(BoardIds.SYNTHETIC_BOARD, BrainFlowInputParams())
-    # board = init_board()
+    board = init_board()
 
     while not selected_mode:
         for event in pygame.event.get():
@@ -146,11 +146,11 @@ def menu():
                     
 
                 elif event.key == pygame.K_r:
-                    run("record", board_Synthetic)
+                    run("record", board)
                     record, selected_mode = True, True
 
                 elif event.key == pygame.K_b:
-                    run("bci", board_Synthetic)
+                    run("bci", board)
                     bci, selected_mode = True, True
 
         update_screen(menu_text)
@@ -163,7 +163,6 @@ def menu():
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_q:
-                    end_session(board_Synthetic, "file")
                     pygame.quit()
                     break
                 
@@ -177,12 +176,12 @@ def menu():
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_q:
-                    end_session(board_Synthetic, "file")
+                    end_session(board, "file")
                     pygame.quit()
                     break
                 
                 if event.key == pygame.K_SPACE:
-                    run("record", board_Synthetic)
+                    run("record", board)
 
         update_screen(menu_text)
 
@@ -196,7 +195,7 @@ def menu():
                     break
 
                 if event.key == pygame.K_SPACE:
-                    run("bci", board_Synthetic)
+                    run("bci", board)
 
         update_screen(menu_text)
             
@@ -311,6 +310,10 @@ def run(mode: str, board: BoardShim):
                         print("jump")
                         board.insert_marker(1)
                     bird.jump()
+
+                    #else if mode == "bci":
+                        # Write eeg predict code here
+
 
             if event.type == SPAWNPIPE:
                 pipes.append(Pipe())
