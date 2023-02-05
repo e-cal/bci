@@ -78,7 +78,7 @@ def init_board() -> BoardShim:
 
 
 def propagate_label(df, n):
-    labels = df["label"].copy().values
+    labels = df["marker"].copy().values
     for i in range(len(labels)):
         if labels[i] == 1:
             start = max(0, i - n)
