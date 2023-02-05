@@ -123,71 +123,42 @@ def menu():
         "Press q to quit",
     ]
 
-    record = False
-    bci = False
-    normal = False
-    selected_mode = False
+    mode = None
 
-    eeg = True
-    board_Synthetic = BoardShim(BoardIds.SYNTHETIC_BOARD, BrainFlowInputParams())
+    board = BoardShim(BoardIds.SYNTHETIC_BOARD, BrainFlowInputParams())
 
-    while not selected_mode:
+    while not mode:
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_q:
                     end_session(board, "file")
                     pygame.quit()
                     break
-                    
+
                 if event.key == pygame.K_SPACE:
-                    run("normal", board_Synthetic)
-                    normal, selected_mode = True, True
-                    
+                    run("normal", board)
+                    mode = "normal"
 
                 elif event.key == pygame.K_r:
                     board = init_board()
                     run("record", board)
-                    record, selected_mode = True, True
+                    mode = "record"
 
                 elif event.key == pygame.K_b:
                     board = init_board()
                     run("bci", board)
-                    bci, selected_mode = True, True
+                    mode = "bci"
 
         update_screen(menu_text)
 
+    while True:
+        if mode == "normal":
+            menu_text = ["Press space to continue playing"]
+        elif mode == "record":
+            menu_text = ["Press space to continue recording"]
+        else:
+            menu_text = ["Press space to continue using bci"]
 
-    mode_text = font.render("Normal", True, (255,255,255))
-
-    while normal:
-        menu_text = ["Press space to continue playing"]
-        for event in pygame.event.get():
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_q:
-                    pygame.quit()
-                    break
-                
-                if event.key == pygame.K_SPACE:
-                    run("normal", board_Synthetic)
-
-        update_screen(menu_text)
-
-    while record:
-        menu_text = ["Press space to continue recording"]
-        for event in pygame.event.get():
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_q:
-                    end_session(board, "file")
-                    pygame.quit()
-                    break
-                
-                if event.key == pygame.K_SPACE:
-                    run("record", board)
-
-        update_screen(menu_text)
-
-    while bci:
-        menu_text = ["Press space to continue using bci"]
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_q:
@@ -196,10 +167,10 @@ def menu():
                     break
 
                 if event.key == pygame.K_SPACE:
-                    run("bci", board)
+                    run(mode, board)
 
         update_screen(menu_text)
-            
+
 
 def update_screen(menu_text):
     try:
@@ -216,7 +187,7 @@ def update_screen(menu_text):
 
     except pygame.error:
         exit()
-    
+
 
 class Bird:
     def __init__(
@@ -312,9 +283,8 @@ def run(mode: str, board: BoardShim):
                         board.insert_marker(1)
                     bird.jump()
 
-                    #else if mode == "bci":
-                        # Write eeg predict code here
-
+                    # else if mode == "bci":
+                    # Write eeg predict code here
 
             if event.type == SPAWNPIPE:
                 pipes.append(Pipe())
