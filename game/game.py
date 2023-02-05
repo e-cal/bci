@@ -130,7 +130,6 @@ def menu():
 
     eeg = True
     board_Synthetic = BoardShim(BoardIds.SYNTHETIC_BOARD, BrainFlowInputParams())
-    board = init_board()
 
     while not selected_mode:
         for event in pygame.event.get():
@@ -146,10 +145,12 @@ def menu():
                     
 
                 elif event.key == pygame.K_r:
+                    board = init_board()
                     run("record", board)
                     record, selected_mode = True, True
 
                 elif event.key == pygame.K_b:
+                    board = init_board()
                     run("bci", board)
                     bci, selected_mode = True, True
 
