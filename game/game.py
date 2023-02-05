@@ -83,7 +83,7 @@ def propagate_label(df, n):
         if labels[i] == 1:
             start = max(0, i - n)
             labels[start:i] = 1
-    df["label"] = labels
+    df["marker"] = labels
     return df
 
 
@@ -269,7 +269,6 @@ def run(record: bool, board: BoardShim):
 
                 if event.key == pygame.K_SPACE:
                     if record:
-                        print("jump")
                         board.insert_marker(1)
                     bird.jump()
 
