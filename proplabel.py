@@ -59,10 +59,21 @@ def test_speed():
     total = 0
     for _ in range(n):
         t = time.time()
+        propagate_label(df, 2)
+        total += time.time() - t
+
+    pytime = total / n
+
+    n = 1000
+    total = 0
+    for _ in range(n):
+        t = time.time()
         propagate_label_np(df, 2)
         total += time.time() - t
 
-    print(total / n)
+    nptime = total / n
+
+    print(nptime < pytime)
 
 
 # test_propagate_label()
