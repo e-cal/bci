@@ -22,7 +22,7 @@ LABEL_WINDOW_MS = 40
 
 FREQ = 250  # sample rate (hz)
 SAMPLE_GAP_MS = 1000 / FREQ  # time between samples
-LABEL_WINDOW = np.ceil(LABEL_WINDOW_MS / SAMPLE_GAP_MS)
+LABEL_WINDOW = np.ceil(LABEL_WINDOW_MS / SAMPLE_GAP_MS).astype(int)
 
 
 # Init game
@@ -120,8 +120,14 @@ def end_session(board: BoardShim, fp: str):
         "timestamp",
         "marker",
     ]
+    df.index.name = "sample"
 
     df = propagate_label(df, LABEL_WINDOW)
+
+    _, ext = os.path.splitext(fp)
+    if not ext:
+        fp += ".csv"
+
     df.to_csv(fp, index=True)
 
 
