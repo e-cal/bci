@@ -279,7 +279,6 @@ def run(mode: Literal["normal", "record", "bci"], board: BoardShim):
             pass
 
         for event in pygame.event.get():
-
             if event.type == pygame.KEYDOWN:
                 if mode != "bci" and event.key == pygame.K_SPACE:
                     if mode == "record":
@@ -287,7 +286,6 @@ def run(mode: Literal["normal", "record", "bci"], board: BoardShim):
                     bird.jump()
 
         if t % PIPE_INTERVAL == 0:
-            print("spawn pipe")
             pipes.append(Pipe())
 
         # Checking Boundaries
