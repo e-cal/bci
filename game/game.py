@@ -195,6 +195,7 @@ class Bird:
         x=100,
         y=screen.get_height() // 2,
         size=[90, 90],
+        hitbox_scale=[-55, -55],
         vel=0,
         img="game/brain.png",
     ) -> None:
@@ -203,12 +204,13 @@ class Bird:
         self.x = x
         self.y = y
         self.size = size
+        self.hitbox_scale = hitbox_scale
         self.vel = vel
 
     def get_rect(self):
         return self.img.get_rect(
             center=(self.x + (self.size[0] // 2), self.y + (self.size[1] // 2))
-        ).inflate(-40, -40)
+        ).inflate(self.hitbox_scale)
 
     def jump(self):
         self.vel -= JUMP
@@ -223,6 +225,7 @@ class Bird:
 
     def draw(self):
         screen.blit(self.img, (self.x, self.y))
+        # pygame.draw.rect(screen, (255, 0, 0), self.get_rect())
 
 
 class Pipe:
