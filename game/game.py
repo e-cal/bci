@@ -17,12 +17,13 @@ MAX_VEL = 5
 
 SERIAL_PORT = "/dev/ttyUSB0"
 
-# Number of data points to mark as "jump" before and after key press
-# sample rate: 250hz (250 / second)
-# how long before/after the action are the relevant neural signals present?
-# travel time: 20-30ms
-LABEL_WINDOW_BACKWARD = 5
-LABEL_WINDOW_FORWARD = 5
+# Time (ms) to retroactively add marker to data
+# motor signals take 20-30ms to travel
+LABEL_WINDOW_MS = 40
+
+FREQ = 250  # sample rate (hz)
+SAMPLE_GAP_MS = 1000 / FREQ  # time between samples
+LABEL_WINDOW = np.ceil(LABEL_WINDOW_MS / SAMPLE_GAP_MS).astype(int)
 
 
 # Init game
@@ -62,6 +63,16 @@ def init_board() -> BoardShim:
     return board
 
 
+def propagate_label(df, n):
+    labels = df["marker"].copy().values
+    for i in range(len(labels)):
+        if labels[i] == 1:
+            start = max(0, i - n)
+            labels[start:i] = 1
+    df["marker"] = labels
+    return df
+
+
 def end_session(board: BoardShim, fp: str):
     data = board.get_board_data()
 
@@ -95,8 +106,13 @@ def end_session(board: BoardShim, fp: str):
         "timestamp",
         "marker",
     ]
+    df.index.name = "sample"
 
-    # preprocess here maybe?
+    df = propagate_label(df, LABEL_WINDOW)
+
+    _, ext = os.path.splitext(fp)
+    if not ext:
+        fp += ".csv"
 
     df.to_csv(fp, index=True)
 
@@ -263,8 +279,8 @@ def run(mode: Literal["normal", "record", "bci"], board: BoardShim):
             pass
 
         for event in pygame.event.get():
-            if event.type == pygame.KEYDOWN:
 
+            if event.type == pygame.KEYDOWN:
                 if mode != "bci" and event.key == pygame.K_SPACE:
                     if mode == "record":
                         board.insert_marker(1)
