@@ -187,7 +187,7 @@ def update_screen(menu_text):
 
     except pygame.error:
         exit()
-
+    
 
 class Bird:
     def __init__(
@@ -270,6 +270,7 @@ def run(mode: Literal["normal", "record", "bci"], board: BoardShim):
     bird = Bird()
     pipes = []
     bg_pos = 0
+    score = 0
 
     end = False
     while not end:
@@ -307,6 +308,12 @@ def run(mode: Literal["normal", "record", "bci"], board: BoardShim):
 
             if pipe.collide(bird.get_rect()):
                 end = True
+
+            if bird.x == pipe.x:
+                score += 1
+
+        text = font.render(f'Score: {score}', True, (0, 0, 0))
+        screen.blit(text, (15,15))
 
         bird.update()
         bird.draw()
