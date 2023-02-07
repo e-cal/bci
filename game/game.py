@@ -10,11 +10,15 @@ import pandas as pd
 import pygame
 from brainflow.board_shim import BoardIds, BoardShim, BrainFlowInputParams
 
+# Bird physics
 JUMP = 20
 GRAVITY = 0.1
-
 MAX_VEL = 5
 
+# Pipe spawn rate
+PIPE_INTERVAL = 200
+
+# EEG receiver USB port
 SERIAL_PORT = "/dev/ttyUSB0"
 
 # Time (ms) to retroactively add marker to data
@@ -35,8 +39,6 @@ background = pygame.image.load("game/background.png")
 background = pygame.transform.scale(
     background, [background.get_width() * 1.31, background.get_height() * 1.31]
 )
-SPAWNPIPE = pygame.USEREVENT
-pygame.time.set_timer(SPAWNPIPE, 1200)
 
 
 def parseargs():
@@ -118,13 +120,6 @@ def end_session(board: BoardShim, fp: str):
 
 
 def menu():
-    menu_text = [
-        "Press space to play",
-        "Press r to record",
-        "Press b to play with bci",
-        "Press q to quit",
-    ]
-
     board = BoardShim(BoardIds.SYNTHETIC_BOARD, BrainFlowInputParams())
     fp = parseargs().file
 
@@ -273,7 +268,9 @@ def run(mode: Literal["normal", "record", "bci"], board: BoardShim):
     score = 0
 
     end = False
+    t = 0
     while not end:
+        t += 1
         screen.fill((255, 255, 255))
 
         clock.tick(150)
@@ -283,15 +280,14 @@ def run(mode: Literal["normal", "record", "bci"], board: BoardShim):
             pass
 
         for event in pygame.event.get():
-
             if event.type == pygame.KEYDOWN:
                 if mode != "bci" and event.key == pygame.K_SPACE:
                     if mode == "record":
                         board.insert_marker(1)
                     bird.jump()
 
-            if event.type == SPAWNPIPE:
-                pipes.append(Pipe())
+        if t % PIPE_INTERVAL == 0:
+            pipes.append(Pipe())
 
         # Checking Boundaries
         if bird.y <= -15 or bird.y >= 870:
