@@ -5,9 +5,9 @@ from scipy import signal
 from scipy.signal import cwt
 from scipy.signal import spectrogram
 
-eeg_data = np.genfromtxt("test.csv")
+'''eeg_data = np.genfromtxt("test.csv")
 
-eeg_data = eeg_data[:200, :]
+eeg_data = eeg_data[:200, :]'''
 # Simple moving average filter. The honda civic of all denoising techniques.
 def sma(data, window_size):
     # Load EEG data into a numpy array

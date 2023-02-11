@@ -32,15 +32,17 @@ if False:
 # ----- STEP 1: Load data -----
 # Use os.path.join to construct the full path to the CSV file
 file_path = os.path.join(
-    r"C:\Users\danie\Documents\GitHub\bci\extracted\data", "mixed-data.csv"
+    r"C:\Users\danie\Documents\GitHub\bci\data", "one-game.csv"
 )
 
 # Use pandas to read the CSV file
 data = pd.read_csv(file_path, sep=",", header=0)
 
-# Only keep eeg channels
-data.drop(
+
+def get_eeg(data):
+    eeg_data = data.drop(
     columns=[
+        "sample",
         "packet",
         "accel1",
         "accel2",
@@ -56,83 +58,92 @@ data.drop(
         "analog2",
         "analog3",
         "timestamp",
-        "marker",
-    ],
-    inplace=True,
-)
+        ],
+    )
+    return eeg_data
+data = get_eeg(data)
 
 # -----  Step 2: Partition the data -----
+def partition(data, partition_size):
 
-# Choose the size of partitions you want to create
-partition_size = 128
+    # Determine the size of each partition
+    num_partitions = int(data.shape[0] / partition_size)
 
-# Determine the size of each partition
-num_partitions = int(data.shape[0] / partition_size)
+    # Split the DataFrame into partitions
+    partitions = [
+        data.iloc[i : i + partition_size, :]
+        for i in range(0, data.shape[0], partition_size)
+    ]
+    for i in range(num_partitions):
+        partition = partitions[i]
+        active = partition['marker'].isin([1]).any()
+        if active:
+            partition['marker'] = 1
+        if not active:
+            partition['marker'] = 0
 
-# Split the DataFrame into partitions
-partitions = [
-    data.iloc[i : i + partition_size, :]
-    for i in range(0, data.shape[0], partition_size)
-]
+    return partitions, num_partitions
+
+partition_size = 64
+partitions, num_partitions = partition(data, partition_size)
 
 # ----- Steps 3 and 4: Apply band pass filter and calculate band power -----
+def power(partitions, num_partitions):
+    # specify your desired band to calculate power in
+    bands = {
+        "Alpha": (8, 12),
+        "Beta": (12, 30),
+    }
 
-# specify your desired band to calculate power in
-bands = {
-    "Alpha": (8, 12),
-    "Beta": (12, 30),
-}
+    fs = 250  # sampling frequency
 
-fs = 250  # sampling frequency
+    band_data = pd.DataFrame(columns=range(16))
+    print("Parition Count:", num_partitions)
 
-# Initialize a dictionary to store the power in each frequency band
-band_power = {band: [] for band in bands}
+    for i in range(num_partitions):
+        # Get the data for the current partition
+        partition = partitions[i]
+        powers = []
+        eeg_columns = partition.columns.drop('marker')
 
+        for col in eeg_columns:
+            filtered_data = pre.bandpass(
+                partition[col], 8, 30, fs
+            )  # bandpass filter from preprocessing file
 
-band_data = pd.DataFrame(columns=range(16))
-print("num part:", num_partitions)
-for i in range(num_partitions):
-    # Get the data for the current partition
-    partition = data[i * partition_size : (i + 1) * partition_size]
+            # Use Welch's method to estimate the power spectral density
+            f, psd = signal.welch(filtered_data, fs, nperseg=64)
 
-    powers = []
+            for band in bands:
+                # Find the indices of the frequency band
+                idx_band = np.logical_and(f >= bands[band][0], f < bands[band][1])
+                
+                # Calculate the power in the frequency band
+                power = np.trapz(psd[idx_band], f[idx_band])
+                
+                # Append the power to list
+                powers.append(power)
+        powers.append(partition['marker'][i*64])
+        band_data = band_data.append(pd.Series(powers, index=range(17)), ignore_index=True)
+    band_data = band_data.drop([0])
+    return band_data
 
-    # Apply FFT to each channel
-    for col in partition.columns:
-
-        filtered_data = pre.bandpass(
-            partition[col], 12, 30, fs
-        )  # banpass filter from preprocessing file
-
-        # Use Welch's method to estimate the power spectral density
-        f, psd = signal.welch(filtered_data, fs, nperseg=256)
-
-        for band in bands:
-            # Find the indices of the frequency band
-            idx_band = np.logical_and(f >= bands[band][0], f < bands[band][1])
-            # Calculate the power in the frequency band
-            power = np.trapz(psd[idx_band], f[idx_band])
-            # Append the power to list
-            powers.append(power)
-
-    band_data = band_data.append(pd.Series(powers, index=range(16)), ignore_index=True)
-
-print(band_data)
-band_data = band_data.drop([0])
+band_data = power(partitions, num_partitions)
 
 # ----- Step 5: K=2 cluster -----
 
 # Convert DataFrame to a numpy array
-X = band_data.values
+X = band_data.values # MAKE SURE TO DROP THE LABELS
+print(X)
 
 # Initialize PCA with 2 components
-pca = PCA(n_components=2)
+#pca = PCA(n_components=2)
 
 # Fit the PCA model to the data and transform the data
-X_pca = pca.fit_transform(X)
+#X_pca = pca.fit_transform(X)
 
 # Update the DataFrame with the transformed data
-df_pca = pd.DataFrame(X_pca, columns=['PC1', 'PC2'])
+df_pca = pd.DataFrame(X, columns=list(range(16)))
 
 # Initialize KMeans model with 2 clusters
 kmeans = KMeans(n_clusters=2)
@@ -141,11 +152,11 @@ kmeans = KMeans(n_clusters=2)
 kmeans.fit(df_pca.values)
 
 # Predict the cluster labels for each data point
-labels = kmeans.predict(df_pca)
+guesses = kmeans.predict(df_pca)
 
 # Add the cluster labels as a new column to the DataFrame
-df_pca["cluster"] = labels
-print(df_pca)
+df_pca["cluster"] = guesses
+
 
 # View the updated DataFrame
 # Create a scatter plot with different colors for each cluster
