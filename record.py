@@ -1,22 +1,15 @@
-import time
-import pandas as pd
-import numpy as np
 import argparse
+import os
+import time
 
-from brainflow.board_shim import BoardShim, BrainFlowInputParams, BoardIds
+import numpy as np
+import pandas as pd
+from brainflow.board_shim import BoardIds, BoardShim, BrainFlowInputParams
 
 
 def parseargs():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument(
-        "-e",
-        "--eeg",
-        type=bool,
-        help="Get EEG electrode readings only",
-        required=False,
-        default=False,
-    )
     parser.add_argument(
         "-p",
         "--serial-port",
@@ -40,6 +33,14 @@ def parseargs():
         help="Length of time (seconds) to read data for",
         required=False,
         default=10,
+    )
+    parser.add_argument(
+        "-l",
+        "--label",
+        type=str,
+        help="Label to add to the marker col of data",
+        required=False,
+        default=0,
     )
     args = parser.parse_args()
     return args
@@ -65,7 +66,6 @@ def main():
 
     board.release_session()
 
-    eeg_channels = BoardShim.get_eeg_channels(board_id.value)
     df = pd.DataFrame(np.transpose(data))
     df.columns = [
         "packet",
@@ -94,19 +94,14 @@ def main():
         "marker",
     ]
 
-    print("Data From the Board")
-    print(df.head())
+    df["marker"] = args.label
 
-    df.to_csv(args.file, index=False)
-    # DataFilter.write_file(data, args.file, "w")
-    # print(f"Data saved to {args.file}")
+    fp = args.file
+    _, ext = os.path.splitext(fp)
+    if not ext:
+        fp += ".csv"
 
-    """
-    restored_data = DataFilter.read_file(args.file)
-    restored_df = pd.DataFrame(np.transpose(restored_data))  # type: ignore
-    print("Data From the File")
-    print(restored_df.head(10))
-    """
+    df.to_csv(fp, index=True)
 
 
 if __name__ == "__main__":
