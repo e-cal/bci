@@ -6,6 +6,8 @@ import matplotlib.pyplot as plt
 import preprocessing as pre
 from scipy import signal
 import sklearn as sk
+from sklearn.model_selection import KFold
+from sklearn.linear_model import LogisticRegression
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 import seaborn as sns
@@ -33,12 +35,11 @@ if False:
 # ----- STEP 1: Load data -----
 # Use os.path.join to construct the full path to the CSV file
 file_path = os.path.join(
-    r"C:\Users\danie\Documents\GitHub\bci\data", "one-game.csv"
+    r"C:\Users\danie\Documents\GitHub\bci\data", "3-games.csv"
 )
 
 # Use pandas to read the CSV file
 data = pd.read_csv(file_path, sep=",", header=0)
-
 
 def get_eeg(data):
     eeg_data = data.drop(
@@ -85,26 +86,24 @@ def partition(data, partition_size):
 
         if active:
             partition['marker'][:] = 1
-            print(i)
         if not active:
             partition['marker'][:] = 0
 
     return partitions, num_partitions
 
-partition_size = 64
+partition_size = 256
 partitions, num_partitions = partition(data, partition_size)
-
+print(num_partitions)
 # ----- Steps 3 and 4: Apply band pass filter and calculate band power -----
-def power(partitions, num_partitions):
+def power(partitions, num_partitions, partition_size):
     # specify your desired band to calculate power in
     bands = {
-        "Alpha": (8, 12),
         "Beta": (12, 30),
     }
 
     fs = 250  # sampling frequency
 
-    band_data = pd.DataFrame(columns=range(16))
+    band_data = pd.DataFrame(columns=range(8))
     print("Parition Count:", num_partitions)
 
     for i in range(num_partitions):
@@ -119,62 +118,64 @@ def power(partitions, num_partitions):
             )  # bandpass filter from preprocessing file
 
             # Use Welch's method to estimate the power spectral density
-            f, psd = signal.welch(filtered_data, fs, nperseg=64)
+            f, psd = signal.welch(filtered_data, fs, nperseg=partition_size/2)
 
             for band in bands:
                 # Find the indices of the frequency band
-                idx_band = np.logical_and(f >= bands[band][0], f < bands[band][1])
-                
+                idx_band = np.logical_and(f >= bands[band][0], f <= bands[band][1])
+
                 # Calculate the power in the frequency band
                 power = np.trapz(psd[idx_band], f[idx_band])
                 
                 # Append the power to list
                 powers.append(power)
 
-        powers.append(partition['marker'][i*64])
-        band_data = band_data.append(pd.Series(powers, index=range(17)), ignore_index=True)
+        powers.append(partition['marker'][i*partition_size+1])
+
+
+        band_data = band_data.append(pd.Series(powers, index=range(9)), ignore_index=True)
+
     band_data = band_data.drop([0])
     return band_data
 
-band_data = power(partitions, num_partitions)
+band_data = power(partitions, num_partitions, partition_size)
 print(np.shape(band_data))
 # ----- Step 5: K=2 cluster -----
 
-# Convert DataFrame to a numpy array
+train = pd.DataFrame(band_data.values, columns = list(range(9)))
 
-# Initialize PCA with 2 components
-#pca = PCA(n_components=2)
+X = np.array(train.drop(columns = 8))
+y = np.array(train[8])
 
-# Fit the PCA model to the data and transform the data
-#X_pca = pca.fit_transform(X)
+# 5 fold CV
+n_folds = 10
+cv_scores = []
+for folds in range(4,10):
+    print(f"folds: {folds}")
+    # create a KFold object to split the data into n_folds folds
+    kf = KFold(n_splits=folds, shuffle=True)
+    fold_scores = []
+    # iterate over the folds and train/validate the model
+    
+    for fold, (train_index, val_index) in enumerate(kf.split(X, y)):
+        # split the data into train and validation sets
+        X_train, y_train = X[train_index], y[train_index]
+        X_val, y_val = X[val_index], y[val_index]
+        
+        # create and train the model on the training set
+        #model = KMeans(n_clusters=2,n_init=10)
+        model = LogisticRegression()
+        model.fit(X_train, y_train)
+        
+        # evaluate the model on the validation set
+        y_pred = model.predict(X_val)
 
-# Update the DataFrame with the transformed data
-train = pd.DataFrame(band_data.values, columns = list(range(17)))
-print(type(train.columns[16]))
-x_train = train.drop(16)
-y_train = train[16]
-print(y_train)
+        score = sk.metrics.accuracy_score(y_val,y_pred)
+        fold_scores.append(score)
+        #print("Fold {}: Accuracy = {:.2f}".format(fold+1, score))
+    cv_scores.append(np.mean(fold_scores))
 
-# Initialize KMeans model with 2 clusters
-kmeans = KMeans(n_clusters=2)
-
-# Fit the model to the data
-kmeans.fit(df_pca.values)
-
-# Predict the cluster labels for each data point
-guesses = kmeans.predict(df_pca)
-
-# Add the cluster labels as a new column to the DataFrame
-df_pca["cluster"] = guesses
-
-
-# View the updated DataFrame
-# Create a scatter plot with different colors for each cluster
-#sns.scatterplot(x='PC1', y='PC2', hue=labels, data=df_pca)
-plt.plot(df_pca["cluster"])
-# Add labels to the plot
-#plt.xlabel('PC1')
-#plt.ylabel('PC2')
-
-# Show the plot
+plt.plot(range(4,10),cv_scores)
+plt.xlabel("CV folds")
+plt.ylabel("accuracy")
 plt.show()
