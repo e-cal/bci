@@ -5,6 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import preprocessing as pre
 from scipy import signal
+import sklearn as sk
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 import seaborn as sns
@@ -61,6 +62,8 @@ def get_eeg(data):
         ],
     )
     return eeg_data
+
+#grab the data
 data = get_eeg(data)
 
 # -----  Step 2: Partition the data -----
@@ -74,13 +77,17 @@ def partition(data, partition_size):
         data.iloc[i : i + partition_size, :]
         for i in range(0, data.shape[0], partition_size)
     ]
+
     for i in range(num_partitions):
-        partition = partitions[i]
-        active = partition['marker'].isin([1]).any()
+        partition = pd.DataFrame(partitions[i])
+
+        active = np.isin(1, partition['marker'].tolist())
+
         if active:
-            partition['marker'] = 1
+            partition['marker'][:] = 1
+            print(i)
         if not active:
-            partition['marker'] = 0
+            partition['marker'][:] = 0
 
     return partitions, num_partitions
 
@@ -123,18 +130,17 @@ def power(partitions, num_partitions):
                 
                 # Append the power to list
                 powers.append(power)
+
         powers.append(partition['marker'][i*64])
         band_data = band_data.append(pd.Series(powers, index=range(17)), ignore_index=True)
     band_data = band_data.drop([0])
     return band_data
 
 band_data = power(partitions, num_partitions)
-
+print(np.shape(band_data))
 # ----- Step 5: K=2 cluster -----
 
 # Convert DataFrame to a numpy array
-X = band_data.values # MAKE SURE TO DROP THE LABELS
-print(X)
 
 # Initialize PCA with 2 components
 #pca = PCA(n_components=2)
@@ -143,7 +149,11 @@ print(X)
 #X_pca = pca.fit_transform(X)
 
 # Update the DataFrame with the transformed data
-df_pca = pd.DataFrame(X, columns=list(range(16)))
+train = pd.DataFrame(band_data.values, columns = list(range(17)))
+print(type(train.columns[16]))
+x_train = train.drop(16)
+y_train = train[16]
+print(y_train)
 
 # Initialize KMeans model with 2 clusters
 kmeans = KMeans(n_clusters=2)
