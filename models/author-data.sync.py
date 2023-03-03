@@ -26,8 +26,8 @@ K.set_image_data_format("channels_last")
 data_path = sample.data_path()
 
 # Set parameters and read data
-raw_fname = data_path + "/MEG/sample/sample_audvis_filt-0-40_raw.fif"
-event_fname = data_path + "/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif"
+raw_fname = str(data_path) + "/MEG/sample/sample_audvis_filt-0-40_raw.fif"
+event_fname = str(data_path) + "/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif"
 tmin, tmax = -0.0, 1
 event_id = dict(aud_l=1, aud_r=2, vis_l=3, vis_r=4)
 
