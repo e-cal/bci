@@ -13,9 +13,11 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from brainflow import *
-from keras import constraints, layers
+from keras import constraints, layers, optimizers
+from keras.utils import to_categorical
 from matplotlib import pyplot as plt
 from scipy import signal
+from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, TensorDataset
 
@@ -27,7 +29,7 @@ data_0 = pd.read_csv("../data/60s-l-0.csv")
 data_1 = pd.read_csv("../data/60s-arm-flap.csv")
 
 SCALE_FACTOR = (4500000) / 24 / (2**23 - 1)
-FREQ = 250  # 250 samples per second
+FREQ = 250
 
 # trim the first and last 5 seconds off the data
 data_0 = data_0.iloc[5 * FREQ : -5 * FREQ, :]
@@ -57,7 +59,7 @@ markers = data["marker"][:]
 # ## Filters
 
 # %%
-NOTCH_SIZE = 8
+NOTCH_SIZE = 3
 
 
 def notch_filter(signal_data, notch_freq=60, notch_size=NOTCH_SIZE, fs=250):
@@ -72,13 +74,6 @@ def notch_filter(signal_data, notch_freq=60, notch_size=NOTCH_SIZE, fs=250):
 
 
 # %%
-# def bandpass_filter(start, stop, signal_data, fs=250):
-#     """Smooths and reduces gain depending on specified frequency band"""
-#     bp_Hz = np.array([start, stop])
-#     b, a = signal.butter(5, bp_Hz / (fs / 2.0), btype="bandpass")
-#     return signal.lfilter(b, a, signal_data, axis=0)
-
-
 FREQ_LOW = 13
 FREQ_HIGH = 80
 
@@ -227,67 +222,57 @@ x_train, x_val, y_train, y_val = train_test_split(  # type: ignore
     x_data, y_data, test_size=0.2, shuffle=True, random_state=42
 )
 
-# x_train = x_train.reshape(x_train.shape[0], x_train.shape[1], 1)
-x_train = x_train.reshape(1, 3, x_train.shape[0], 1)
-# x_val = x_val.reshape(x_val.shape[0], x_val.shape[1], 1)
-x_val = x_val.reshape(1, 3, x_val.shape[0], 1)
-# y_train = y_train.reshape(y_train.shape[0], 1)
-y_train = y_train.reshape(1, 1, y_train.shape[0])
-# y_val = y_val.reshape(y_val.shape[0], 1)
-y_val = y_val.reshape(1, 1, y_val.shape[0])
+x_train = x_train.reshape(x_train.shape[0], x_train.shape[1], 1)
+x_val = x_val.reshape(x_val.shape[0], x_val.shape[1], 1)
+y_train = y_train.reshape(y_train.shape[0], 1)
+y_val = y_val.reshape(y_val.shape[0], 1)
 
 x_train.shape, x_val.shape, y_train.shape, y_val.shape
 
-# %%
-# total = len(y_data)
-# pos = np.sum(y_data)
-# neg = total - pos
-
-# class_weights = {0: (1 / neg) * (total / 2.0), 1: (1 / pos) * (total / 2.0)}
-# class_weights
-
-# %%
-# np.sum(y_data), len(y_data)
-
 # %% [markdown]
-# # Models
-
-# %% [markdown]
-# ## CNN
+# # Model
 
 # %%
 model = tf.keras.Sequential(
     [
-        layers.Conv2D(8, (1, FREQ // 2), padding="same", use_bias=False),
+        layers.Conv1D(64, 3, padding="same", use_bias=False),
         layers.BatchNormalization(),
-        layers.DepthwiseConv2D(
-            (3, 1),
-            use_bias=False,
-            depth_multiplier=2,
-            depthwise_constraint=constraints.MaxNorm(1.0),
-        ),
+        layers.Conv1D(64, 3, padding="same", use_bias=False),
         layers.BatchNormalization(),
         layers.Activation("elu"),
-        layers.AveragePooling2D((1, 4)),
+        layers.AveragePooling1D(2),
         layers.Dropout(0.25),
-        layers.SeparableConv2D(16, (1, 16), use_bias=False, padding="same"),
+        layers.Conv1D(128, 3, padding="same", use_bias=False),
         layers.BatchNormalization(),
         layers.Activation("elu"),
-        layers.AveragePooling2D((1, 8)),
+        layers.AveragePooling1D(1),
         layers.Dropout(0.25),
         layers.Flatten(),
-        layers.Dense(
-            1, kernel_constraint=constraints.MaxNorm(0.25), activation="softmax"
-        ),
+        layers.Dense(2),
+        layers.Activation("softmax"),
     ]
 )
 
+# %%
+# one hot encode target values
+y_train = to_categorical(y_train)
+y_val = to_categorical(y_val)
+
+# %%
 model.compile(
-    optimizer="adam", loss="sparse_categorical_crossentropy", metrics=["accuracy"]
+    optimizer=optimizers.Adam(learning_rate=0.001),
+    loss="categorical_crossentropy",
+    metrics=["accuracy"],
 )
 
 # %%
-model.fit(x_train, y_train, epochs=10, validation_data=(x_val, y_val), batch_size=32)
+model.fit(
+    x_train,
+    y_train,
+    epochs=25,
+    validation_data=(x_val, y_val),
+    batch_size=32,
+)
 
 # %%
 plt.plot(model.history.history["val_accuracy"])
@@ -295,12 +280,52 @@ plt.plot(model.history.history["val_accuracy"])
 # %%
 y_pred = model(np.array(x_data))
 
-start = 77450
-interval = 1900
+# %%
+pred_classes = np.argmax(y_pred, axis=1)
+sum(pred_classes == y_data) / len(y_data)
 
-scaled = np.array(y_pred[start : start + interval])
+# %%
+print(confusion_matrix(y_data, pred_classes))
 
-plt.plot(y_data[start : start + interval])
-# plt.plot(y_pred[start:start+interval])
-plt.plot(scaled)
-plt.show()
+# %%
+print(classification_report(y_data, pred_classes))
+
+
+# %% [markdown]
+# ## Test on Real Data
+
+# %%
+def load_data(fp):
+    data = pd.read_csv(fp)
+    SCALE_FACTOR = (4500000) / 24 / (2**23 - 1)
+    FREQ = 250  # 250 samples per second
+
+    # trim the first and last 5 seconds off the data
+    data = data_0.iloc[5 * FREQ : -5 * FREQ, :]
+
+    eeg_cols = [f"eeg{i}" for i in range(1, 9)]
+    data[eeg_cols] = data[eeg_cols] * SCALE_FACTOR
+
+    for col in eeg_cols:
+        data_filtered = notch_filter(data[col])
+        data_filtered = bandpass(data_filtered)
+        data[col] = data_filtered
+
+    eeg_data = np.array([data[f"eeg{i}"][:] for i in range(1, 9)])
+    timestamps = data["timestamp"][:]
+    markers = data["marker"][:]
+
+    x_data, y_data, freq_list = get_processed_data(timestamps, eeg_data, markers)
+    return x_data, y_data, freq_list
+
+
+x_test, y_test, freq_list = load_data("../data/3-games-arm-flap.csv")
+
+y_pred = model(np.array(x_test))
+pred_classes = np.argmax(y_pred, axis=1)
+
+# %%
+sum(pred_classes == y_test) / len(y_test)
+
+# %%
+print(confusion_matrix(y_test, pred_classes))
