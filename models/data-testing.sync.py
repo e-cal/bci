@@ -26,6 +26,20 @@ raw_training = pd.read_csv("../data/60s-l-0.csv")
 raw_training.head()
 
 # %%
+plt.plot(raw_training["eeg1"])
+plt.show()
+
+# %% [markdown]
+"""
+> For the scale factor, this is the multiplier that you use to convert the EEG values from “counts” (the int32 number that you parse from the binary stream) into scientific units like “volts”. By default, our Arduino sketch running on the OpenBCI board sets the ADS1299 chip to its maximum gain (24x), which results in a scale factor of 0.02235 microVolts per count. Because the gain is user-configurable (24x, 12x, 8x, 6x, 4x, 2x, 1x), the scale factor will be different. If the gain is changed, the equation that you should use for determining the scale factor is:
+> ```
+> Scale Factor (Volts/count) = 4.5 Volts / gain / (2^23 - 1);
+> ```
+> Note that 2^23 might be an unexpected term in this equation considering that the ADS1299 is a 24-bit device. That's because the 24bit raw count value is in 2's complement format. This equation is from the ADS1299 data sheet, specifically it is from the text surrounding Table 7. This scale factor has also been confirmed experimentally using known calibration signals.
+"""
+
+
+# %%
 SCALE_FACTOR = (4500000) / 24 / (2**23 - 1)
 FREQ = 250  # 250 samples per second
 
@@ -41,33 +55,21 @@ raw_training[eeg_cols] = raw_training[eeg_cols] * SCALE_FACTOR
 training_raw_channels = []
 for i in range(1, 9):
     training_raw_channels.append(raw_training[f"eeg{i}"][:])
-training_raw_channels = np.array(training_raw_channels)
+training_channels = np.array(training_raw_channels)
 
-training_raw_times = raw_training["timestamp"][:]
-training_raw_markers = raw_training["marker"][:]
+training_times = raw_training["timestamp"][:]
+training_markers = raw_training["marker"][:]
 
 # %%
 raw_training.head()
 
 # %%
-(training_raw_channels.T)[0]
+# (training_raw_channels.T)[0]
 
 # %%
 SCALE_FACTOR = (4500000) / 24 / (2**23 - 1)
 fs = 250
 
-# trim and scale
-# training_times = np.array(training_raw_times[5 * fs : -5 * fs])
-# training_channels = np.array(
-#     [SCALE_FACTOR * training_raw_channels[n][5 * fs : -5 * fs] for n in range(8)]
-# )
-# training_spaces = np.array(training_raw_markers[5 * fs : -5 * fs])
-
-# testing_times = np.array(testing_raw_times[5 * fs : -5 * fs])
-# testing_channels = np.array(
-#     [SCALE_FACTOR * testing_raw_channels[n][5 * fs : -5 * fs] for n in range(8)]
-# )
-# testing_spaces = np.array(testing_raw_markers[5 * fs : -5 * fs])
 
 # %% [markdown]
 # ## Filters
@@ -91,15 +93,15 @@ def bandpass(start, stop, signal_data, fs=250):
 filtered_training = []
 filtered_testing = []
 
-for i in range(8):
-    # Filter training data
-    notched = notch_filter(training_channels[i].T, notch_size=8)
-    bpf = bandpass(1, 50, notched)
-    filtered_training.append(notched)
+# for i in range(8):
+#     # Filter training data
+#     notched = notch_filter(training_channels[i].T, notch_size=8)
+#     bpf = bandpass(1, 50, notched)
+#     filtered_training.append(notched)
 
-    # Filter testing data
-    # notched = notch_filter(testing_channels[i].T, notch_size=8)
-    # filtered_testing.append(notched)
+# Filter testing data
+# notched = notch_filter(testing_channels[i].T, notch_size=8)
+# filtered_testing.append(notched)
 
 # %% [markdown]
 # ## Fourier Transforms
@@ -115,7 +117,7 @@ training_freqs = np.fft.fftfreq(training_times.shape[-1], d=1 / fs)
 
 # Get fourier transforms for each channel
 for i in range(8):
-    training_fourier.append(np.absolute(np.fft.fft(filtered_training[i])))
+    training_fourier.append(np.absolute(np.fft.fft(training_channels[i])))
     # testing_fourier.append(np.absolute(np.fft.fft(filtered_testing[i])))
 
 # Stack fourier transforms

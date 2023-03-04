@@ -117,9 +117,9 @@ training_stacked = np.stack(training_fourier, axis=1)
 training_avg_fourier = np.mean(training_stacked, axis=1)
 
 plt.plot(training_freqs, training_avg_fourier)
-plt.xlim(0, 125)
+plt.xlim(0, 100)
 plt.ylim(0, 1400)
-plt.title("FFT of Trainng Data")
+plt.title("Processed Data FFT")
 plt.show()
 
 # %% [markdown]
@@ -204,9 +204,6 @@ def get_processed_data(
 
     return np.array(x_data), np.array(y_data), relevant_freq
 
-
-# %% [markdown]
-# Get training and validation data
 
 # %%
 x_data, y_data, freq_list = get_processed_data(timestamps, eeg_data, markers)

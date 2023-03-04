@@ -28,20 +28,12 @@ from torch.utils.data import DataLoader, TensorDataset
 
 # %%
 raw_training = DataFilter.read_file("../data/training_EEG.csv")
-# raw_training2 = DataFilter.read_file("../data/training-long_EEG.csv")
-# raw_training3 = DataFilter.read_file("../data/combo_file.csv")
 
 
 # %%
 raw_training[1:9][0]
 
 # %%
-# raw_training = DataFilter.read_file('drive/MyDrive/eeg/training_EEG.csv')
-# raw_training = pd.DataFrame(np.transpose(raw_training))
-# raw_training = raw_training3
-
-# sample,packet,eeg1,eeg2,eeg3,eeg4,eeg5,eeg6,eeg7,eeg8,accel1,accel2,accel3,other1,other2,other3,other4,other5,other6,other7,analog1,analog2,analog3,timestamp,marker
-
 training_raw_channels = []
 for channel in range(1, 9):
     training_raw_channels.append(raw_training[channel][:])
@@ -116,9 +108,6 @@ testing_spaces = np.array(testing_raw_markers[5 * fs : -5 * fs])
 # %% [markdown]
 # ## Filters
 
-# %% [markdown]
-# Notch Filters removes background power noise at 60 hz
-
 # %%
 def notch_filter(signal_data, notch_freq=60, notch_size=3, fs=250):
     notch_freq_Hz = np.array([float(notch_freq)])
@@ -128,9 +117,6 @@ def notch_filter(signal_data, notch_freq=60, notch_size=3, fs=250):
         fin = signal_data = signal.lfilter(b, a, signal_data)
     return fin
 
-
-# %% [markdown]
-# Bandpass filter smooths reduces gain depending on specified frequency band
 
 # %%
 FREQ_LOW = 13
@@ -146,9 +132,6 @@ def bandpass(data, lowcut=FREQ_LOW, highcut=FREQ_HIGH, fs=250):
     filtered_data = signal.filtfilt(b, a, data)
     return filtered_data
 
-
-# %% [markdown]
-# ### Apply Filters
 
 # %%
 filtered_training = []
@@ -167,7 +150,6 @@ for i in range(8):
 
 # %% [markdown]
 # ## Fourier Transforms
-# First we take the fourier transform of the entire dataset, averaging over all channels
 
 # %%
 training_fourier = []
@@ -190,9 +172,6 @@ testing_stacked = np.stack(testing_fourier, axis=1)
 training_avg_fourier = np.mean(training_stacked, axis=1)
 testing_avg_fourier = np.mean(testing_stacked, axis=1)
 
-# %% [markdown]
-# Plot FFT of Filtered Training Data
-
 # %%
 plt.plot(training_freqs, training_avg_fourier)
 plt.xlim(0, 125)
@@ -200,18 +179,12 @@ plt.ylim(0, 3000)
 plt.title("FFT of Trainng Data")
 plt.show()
 
-# %% [markdown]
-# Plot FFT of Filtered Testing Data
-
 # %%
 plt.plot(testing_freqs, testing_avg_fourier)
 plt.xlim(0, 125)
 plt.ylim(0, 3000)
 plt.title("FFT of Testing Data")
 plt.show()
-
-# %% [markdown]
-# Define paramaters for *(x_train, y_train)* generation
 
 # %%
 # Time window (in seconds) to consider preceding each space press
@@ -230,9 +203,6 @@ n_width = 6
 freq_lowerbound = 13
 freq_upperbound = 60
 
-
-# %% [markdown]
-# Define function to generate *(x, y)* from the given paramaters
 
 # %%
 def get_processed_data(
@@ -300,9 +270,6 @@ def get_processed_data(
         del window_data
     return x_data, y_data, relevant_freq
 
-
-# %% [markdown]
-# Get training and validation data
 
 # %%
 x_data, y_data, freq_list = get_processed_data(
@@ -513,141 +480,6 @@ interval = 1900
 scaled = np.array(y_pred[start : start + interval])
 
 plt.plot(y_data[start : start + interval])
-# plt.plot(y_pred[start:start+interval])
-plt.plot(scaled)
-plt.show()
-
-# %%
-y_smoother = []
-delta = 5
-theshold = 0.75
-
-y_smoother = [
-    int(max(y_pred[i : i + delta]) > theshold) for i in range(len(y_pred) - delta)
-]
-
-for i in range(delta):
-    y_smoother.append(0)
-
-
-y_smoother = np.arrray(y_smoother)
-
-# %%
-start = 77450
-interval = 1900
-
-plt.plot(y_data[start : start + interval])
-# plt.plot(y_pred[start:start+interval])
-plt.plot(y_smoother[start : start + interval])
-plt.show()
-
-# %%
-from matplotlib import rc
-
-rc("animation", html="jshtml")
-from math import *
-
-import matplotlib.animation as animation
-import matplotlib.pyplot as plt
-import numpy as np
-from mpl_toolkits import mplot3d
-
-# %%
-delta_i = 800
-
-n = 1000 - delta_i
-samplerate = 80
-fr = n // samplerate  # Number of frames
-sim_time = 100  # time for sim to fully run
-inter = n / (sim_time * samplerate)
-
-fig, axs = plt.subplots(1, 1, figsize=(13, 10))
-
-# Line Initialization
-(line1,) = axs.plot([], [], lw=2)
-(line2,) = axs.plot([], [], lw=2)
-
-
-# Titles
-# axs.set_title('Wavefunction Over Time', size = fs)
-
-# fig.text(0.5, 0.95, "V(x) = {},".format(V(x)), ha='center', fontsize = fs)
-# # trans = axs[0,1].get_xaxis_transform() # x in data untis, y in axes fraction
-# axs.text(-0.35,0, "Frame =", ha="center", fontsize = fs)
-# # time = axs[0,1].annotate('', xy=(1.1, 1.1), annotation_clip = False)
-# time_temp = '%.1f'
-# time = axs[0,0].text(0.55, 0.5, '', transform=axs[0,0].transAxes)
-
-# #Axes Initialization
-axs.set_ylim(-0.5, 1.5)
-axs.set_xlim(0, 800)
-
-# axs.set_xlabel('$x$ $pos$ ($arb. units$)')     # add labels
-# axs.set_ylabel('$\psi$ ($arb. units$)')
-axs.grid()
-
-
-# Initialization function
-def init():
-    line1.set_data([], [])
-    line2.set_data([], [])
-    return (
-        line1,
-        line2,
-    )
-
-
-# Animation function
-def animate(i):
-    # time.set_text(time_temp%(i))
-
-    line1.set_data([j for j in range(delta_i)], y_data[i : i + delta_i])
-    line2.set_data([j for j in range(delta_i)], y_pred[i : i + delta_i])
-    # time.set_text(i*samplerate)
-    return (
-        line1,
-        line2,
-    )
-
-
-# Call Animation
-anim = animation.FuncAnimation(
-    fig, animate, init_func=init, frames=fr, interval=inter, blit=True
-)
-# plt.savefig('./h=0.02.pdf', format='pdf', dpi=1200,bbox_inches = 'tight')
-
-# %%
-anim
-
-# %%
-plt.plot(freq_list[:], x_test[59])
-
-# %% [markdown]
-# Testing with validation data
-
-# %%
-x_valid_copy = x_valid
-y_valid_copy = y_valid
-
-# %%
-x_valid = np.array(x_valid)
-y_valid = np.array(y_valid)
-
-
-x_valid = x_valid.reshape(x_valid.shape[0], x_valid.shape[1], 1)
-y_valid = y_valid.reshape(y_valid.shape[0], 1)
-
-# %%
-valid_pred = model(x_valid)
-print(np.unique(valid_pred))
-
-# %%
-start = 9970
-interval = 1600
-
-scaled = 2 * np.array(valid_pred[start : start + interval])
-
-plt.plot(y_valid[start : start + interval])
 # plt.plot(y_pred[start:start+interval])
 plt.plot(scaled)
 plt.show()
@@ -1022,58 +854,3 @@ model = tf.keras.Sequential(
         layers.Dense(units=1, activation="linear"),
     ]
 )
-
-# %% [markdown]
-# Prayer
-#
-# from sklearn.ensemble import RandomForestClassifier
-# %%
-from sklearn.linear_model import LogisticRegression
-from sklearn.naive_bayes import GaussianNB
-from sklearn.svm import SVC
-
-# %%
-# Option 1: Logistic Regression
-lr = LogisticRegression(max_iter=1000)
-lr.fit(x_train, y_train)
-y_pred_lr = lr.predict(x_test)
-
-# %%
-# Option 2: Random Forest
-rf = RandomForestClassifier()
-rf.fit(x_train, y_train)
-y_pred_rf = rf.predict(x_test)
-
-# %%
-# Option 3: SVM
-svm = SVC()
-svm.fit(x_train, y_train)
-y_pred_svm = svm.predict(x_test)
-
-# %%
-# Option 5: Naive Bayes
-nb = GaussianNB()
-nb.fit(x_train, y_train)
-y_pred_nb = nb.predict(x_test)
-
-# %%
-print(np.unique(y_pred_nb))
-print(nb.score(x_test, y_test))
-
-# %%
-start = 0
-interval = 24000
-
-scaled = np.array(y_pred_nb[start : start + interval])
-
-# plt.plot(y_test[start:start+interval])
-# plt.plot(y_pred[start:start+interval])
-plt.plot(scaled)
-plt.show()
-
-# %% [markdown]
-# #Clear GPU
-
-# %%
-tf.keras.backend.clear_session()
-
