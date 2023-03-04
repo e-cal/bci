@@ -268,6 +268,7 @@ def run(mode: Literal["normal", "record", "bci"], board: BoardShim):
 
     end = False
     t = 0
+    cooldown = 0
     while not end:
         t += 1
         screen.fill((255, 255, 255))
@@ -276,7 +277,20 @@ def run(mode: Literal["normal", "record", "bci"], board: BoardShim):
 
         # bci control (maybe poll as a pygame timer event?)
         if mode == "bci":
-            pass
+            data = board.get_current_board_data(60)
+
+            c = [False, False]
+            try:
+                for i in range(1, 3):
+                    if np.abs(data[i][55] - np.mean(data[i][0:50])) > 150:
+                        c[i - 1] = True
+                if c[0] and c[1] and cooldown == 0:
+                    cooldown = 50
+                    bird.jump()
+                elif cooldown > 0:
+                    cooldown -= 1
+            except:
+                pass
 
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN:
