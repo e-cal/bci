@@ -1,3 +1,4 @@
+from preprocessing import *
 from classifier import *
 import torch
 import torch.nn as nn
@@ -5,8 +6,8 @@ import torch.nn as nn
 
 GAIN = 24
 SCALE = 450000/GAIN/(2**23 - 1)
-REACTION_TIME = 150
 BLINK_DURATION = 125
+REACTION_TIME = 110
 
 def reaction_adjust(df, n):
     for i in range(len(df["marker"])-n):
@@ -46,20 +47,27 @@ buffer = 250
 def parse_blinking_data(data, window_size, buffer):
     train = pd.DataFrame(columns=range(window_size*2+1))
     for i in range(len(data['eeg1'])):
-        if data['marker'][i] == 3:
+        if data['marker'][i] == 1:
+            print('BLINK')
             # if there is a blink, grab time series data from channel 1 and 2
-            channel1 = np.array(data['eeg1'][i - window_size:i])
-            channel2 = np.array(data['eeg2'][i - window_size:i])
+            channel1 = np.array(data['eeg1'][i - window_size + REACTION_TIME:i + REACTION_TIME+BLINK_DURATION])
+            #channel1 = bandpass(channel1, 1, 30)
+            channel2 = np.array(data['eeg2'][i - window_size + REACTION_TIME:i + REACTION_TIME+BLINK_DURATION])
+            #channel2 = bandpass(channel2, 1, 30)
             marker = np.array([1])
 
-            datum = np.concatenate((channel1, channel2, marker))
-            datum = np.reshape(datum,(1,251))
+            '''datum = np.concatenate((channel1, channel2, marker))
+            datum = np.reshape(datum,(1,251))'''
 
-            df = pd.DataFrame(datum)
-            train = pd.concat([train, df])
+            plt.plot(channel1)
+            #plt.plot(kalman(channel1)[1])
+            plt.show()
+
+            '''df = pd.DataFrame(datum)
+            train = pd.concat([train, df])'''
 
             # for every blink, grab a non-blinking data sample,from before the blink
-            channel1_neg= np.array(data['eeg1'][i - window_size - buffer:i - buffer])
+            '''channel1_neg= np.array(data['eeg1'][i - window_size - buffer:i - buffer])
             channel2_neg= np.array(data['eeg2'][i - window_size - buffer:i - buffer])
             marker_neg = np.array([0])
 
@@ -67,8 +75,8 @@ def parse_blinking_data(data, window_size, buffer):
             datum = np.reshape(datum,(1,251))
 
             df = pd.DataFrame(datum)
-            train = pd.concat([train, df])
-        return train
+            train = pd.concat([train, df])'''
+    return train
 
 train = parse_blinking_data(data, BLINK_DURATION, buffer)
 print(train)

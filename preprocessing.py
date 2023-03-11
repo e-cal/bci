@@ -22,7 +22,7 @@ def sma(data, window_size):
     return filtered_data
 
 
-def bandpass(data, lowcut, highcut, fs):
+def bandpass(data, lowcut, highcut):
     # Define the sample rate of the data
     fs = 250  # Hz
 
