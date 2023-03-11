@@ -1,6 +1,8 @@
 import os
 from typing import Literal
 
+import time
+
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
 import argparse
 import random
@@ -9,6 +11,8 @@ import numpy as np
 import pandas as pd
 import pygame
 from brainflow.board_shim import BoardIds, BoardShim, BrainFlowInputParams
+
+SENS = 150
 
 # Bird physics
 JUMP = 20
@@ -161,8 +165,10 @@ def menu():
                         mode = "bci"
                         run(mode, board)
 
-                elif event.key == pygame.K_SPACE:
-                    run(mode, board)
+                # elif event.key == pygame.K_SPACE:
+            if mode is not None:
+                time.sleep(1)
+                run(mode, board)
 
         update_screen(menu_text)
 
@@ -282,7 +288,7 @@ def run(mode: Literal["normal", "record", "bci"], board: BoardShim):
             c = [False, False]
             try:
                 for i in range(1, 3):
-                    if np.abs(data[i][55] - np.mean(data[i][0:50])) > 150:
+                    if np.abs(data[i][55] - np.mean(data[i][0:50])) > SENS:
                         c[i - 1] = True
                 if c[0] and c[1] and cooldown == 0:
                     cooldown = 50

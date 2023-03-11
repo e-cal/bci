@@ -1,4 +1,5 @@
 import argparse
+import random
 import time
 
 import numpy as np
@@ -33,6 +34,12 @@ def parseargs():
         required=False,
         default=10,
     )
+    parser.add_argument(
+        "-b",
+        "--blink",
+        action="store_true",
+        help="Record blinks",
+    )
     args = parser.parse_args()
     return args
 
@@ -48,9 +55,16 @@ def main():
 
     board = BoardShim(board_id, params)
     board.prepare_session()
-
     board.start_stream()
-    time.sleep(args.time)
+
+    if args.blink:
+        start = time.time()
+        while time.time() - start < args.time:
+            time.sleep(2)
+            print("blink")
+            board.insert_marker(1)
+    else:
+        time.sleep(args.time)
 
     data = board.get_board_data()  # get all data and remove it from internal buffer
     board.stop_stream()
