@@ -2,6 +2,22 @@ from classifier import *
 import torch
 import torch.nn as nn
 
+
+GAIN = 24
+SCALE = 450000/GAIN/(2**23 - 1)
+
+
+def reaction_adjust(df, n):
+    labels = df["marker"].copy().values
+    for i in range(len(labels)-n):
+        if labels[i] == 1:
+            labels[i] = 0
+            labels[i+n] = 1
+    df["marker"] = labels
+    return df
+
+# Building training datastructure from blinking eeg data
+
 file_path = os.path.join(
         r"C:\Users\danie\Documents\GitHub\bci\data", "blink.csv"
     )
@@ -9,7 +25,9 @@ file_path = os.path.join(
 data = pd.read_csv(file_path, sep=",", header=0)
 data = get_eeg(data)
 
-buffer = 150
+data = reaction_adjust(data,100)
+
+buffer = 250
 
 for i in range(len(data['eeg1'])):
     if data['marker'][i] == 1:
@@ -21,9 +39,9 @@ for i in range(len(data['eeg1'])):
         plt.plot(data['eeg2'][i-buffer:i+buffer])
         plt.show()
 
-# Building training datastructure from blinking eeg data
 
-'''def parse_blinking_data(data, window_size, buffer):
+'''
+def parse_blinking_data(data, window_size, buffer):
     train = pd.DataFrame(columns=range(window_size*2+1))
     for i in range(len(data['eeg1'])):
         if data['marker'][i] == 1:
@@ -38,7 +56,11 @@ for i in range(len(data['eeg1'])):
             
             channel1_neg= np.array(data['eeg1'][i-window_size-buffer][i])
             channel2_neg= np.array(data['eeg2'][i-window_size-buffer][i])
-            marker_neg = 0'''
+            marker_neg = 0
+
+            train.append(np.concatenate(channel1_neg, channel2_neg, marker_neg))'''
+
+
             
             
 
