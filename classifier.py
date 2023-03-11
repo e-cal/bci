@@ -32,14 +32,7 @@ if False:
         zip_ref.extract("data/mixed-data.csv", "extracted/")
     data = pd.read_csv("extracted/mixed-data.csv")
 
-# ----- STEP 1: Load data -----
-# Use os.path.join to construct the full path to the CSV file
-file_path = os.path.join(
-    r"C:\Users\danie\Documents\GitHub\bci\data", "3-games.csv"
-)
 
-# Use pandas to read the CSV file
-data = pd.read_csv(file_path, sep=",", header=0)
 
 def get_eeg(data):
     eeg_data = data.drop(
@@ -64,8 +57,7 @@ def get_eeg(data):
     )
     return eeg_data
 
-#grab the data
-data = get_eeg(data)
+
 
 # -----  Step 2: Partition the data -----
 def partition(data, partition_size):
@@ -91,10 +83,7 @@ def partition(data, partition_size):
 
     return partitions, num_partitions
 
-partition_size = 256
-partitions, num_partitions = partition(data, partition_size)
-print(num_partitions)
-# ----- Steps 3 and 4: Apply band pass filter and calculate band power -----
+
 def power(partitions, num_partitions, partition_size):
     # specify your desired band to calculate power in
     bands = {
@@ -138,44 +127,64 @@ def power(partitions, num_partitions, partition_size):
     band_data = band_data.drop([0])
     return band_data
 
-band_data = power(partitions, num_partitions, partition_size)
-print(np.shape(band_data))
-# ----- Step 5: K=2 cluster -----
+if __name__ ==' __main__':
+    # ----- STEP 1: Load data -----
+    # Use os.path.join to construct the full path to the CSV file
+    file_path = os.path.join(
+        r"C:\Users\danie\Documents\GitHub\bci\data", "3-games.csv"
+    )
 
-train = pd.DataFrame(band_data.values, columns = list(range(9)))
+    # Use pandas to read the CSV file
+    data = pd.read_csv(file_path, sep=",", header=0)
 
-X = np.array(train.drop(columns = 8))
-y = np.array(train[8])
+    #grab the data
+    data = get_eeg(data)
 
-# 5 fold CV
-n_folds = 10
-cv_scores = []
-for folds in range(4,10):
-    print(f"folds: {folds}")
-    # create a KFold object to split the data into n_folds folds
-    kf = KFold(n_splits=folds, shuffle=True)
-    fold_scores = []
-    # iterate over the folds and train/validate the model
-    
-    for fold, (train_index, val_index) in enumerate(kf.split(X, y)):
-        # split the data into train and validation sets
-        X_train, y_train = X[train_index], y[train_index]
-        X_val, y_val = X[val_index], y[val_index]
+    partition_size = 256
+    partitions, num_partitions = partition(data, partition_size)
+    print(num_partitions)
+    # ----- Steps 3 and 4: Apply band pass filter and calculate band power -----
+
+    band_data = power(partitions, num_partitions, partition_size)
+    print(np.shape(band_data))
+    # ----- Step 5: K=2 cluster -----
+
+    train = pd.DataFrame(band_data.values, columns = list(range(9)))
+
+    X = np.array(train.drop(columns = 8))
+    y = np.array(train[8])
+
+    # 5 fold CV
+    n_folds = 10
+    cv_scores = []
+    for folds in range(4,10):
+        print(f"folds: {folds}")
+        # create a KFold object to split the data into n_folds folds
+        kf = KFold(n_splits=folds, shuffle=True)
+        metrics = []
+        # iterate over the folds and train/validate the model
         
-        # create and train the model on the training set
-        #model = KMeans(n_clusters=2,n_init=10)
-        model = LogisticRegression()
-        model.fit(X_train, y_train)
-        
-        # evaluate the model on the validation set
-        y_pred = model.predict(X_val)
+        for fold, (train_index, val_index) in enumerate(kf.split(X, y)):
+            # split the data into train and validation sets
+            X_train, y_train = X[train_index], y[train_index]
+            X_val, y_val = X[val_index], y[val_index]
+            
+            # create and train the model on the training set
+            #model = KMeans(n_clusters=2,n_init=10)
+            model = LogisticRegression()
+            model.fit(X_train, y_train)
+            
+            # evaluate the model on the validation set
+            y_pred = model.predict(X_val)
 
-        score = sk.metrics.accuracy_score(y_val,y_pred)
-        fold_scores.append(score)
-        #print("Fold {}: Accuracy = {:.2f}".format(fold+1, score))
-    cv_scores.append(np.mean(fold_scores))
+            metrics.append((sk.metrics.confusion_matrix(y_val,y_pred).ravel()))
+            
+            #print("Fold {}: Accuracy = {:.2f}".format(fold+1, score))
+        '''print(f"True Negatives: {tn}, False Positives: {fp}")
+        print(f"False Negatives: {fn}, True Positives: {tp}")'''
 
-plt.plot(range(4,10),cv_scores)
-plt.xlabel("CV folds")
-plt.ylabel("accuracy")
-plt.show()
+
+    plt.plot(range(4,10),cv_scores)
+    plt.xlabel("CV folds")
+    plt.ylabel("accuracy")
+    plt.show()
