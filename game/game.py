@@ -1,7 +1,6 @@
 import os
-from typing import Literal
-
 import time
+from typing import Literal
 
 os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "hide"
 import argparse
