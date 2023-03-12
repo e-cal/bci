@@ -20,7 +20,7 @@ def reaction_adjust(df, n):
 
 # Building training datastructure from blinking eeg data
 
-file_path = os.path.join(r"C:\Users\danie\Documents\GitHub\bci\data", "blink.csv")
+file_path = os.path.join(r"C:\Users\danie\Documents\GitHub\bci\data", "blink-3m.csv")
 
 data = pd.read_csv(file_path, sep=",", header=0)
 data = get_eeg(data)
@@ -41,8 +41,6 @@ buffer = 250
 
         plt.axvline(i+REACTION_TIME, color = "red")
         plt.show()"""
-
-print(data)
 
 def parse_blinking_data(data, window_size, buffer):
     train = pd.DataFrame(columns=range(window_size * 2 + 1))
@@ -94,5 +92,5 @@ train = parse_blinking_data(data, 100, buffer)
 save = True
 
 if save:
-    train.to_csv('blink_1', index=False)
+    train.to_csv('blink_1.csv', index=False)
 
