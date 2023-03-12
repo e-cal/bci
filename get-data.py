@@ -1,4 +1,5 @@
 import argparse
+import os
 import random
 import time
 
@@ -63,6 +64,8 @@ def main():
             time.sleep(2)
             print("blink")
             board.insert_marker(1)
+            time.sleep(0.5)
+            os.system("clear")
     else:
         time.sleep(args.time)
 
