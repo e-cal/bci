@@ -103,7 +103,7 @@ def find_blinks(data):
 
 
 # %%
-data = pd.read_csv("../data/blink.csv", sep=",", header=0)
+data = pd.read_csv("./data/blink.csv", sep=",", header=0)
 data = get_eeg(data)
 
 if ROLLING:
